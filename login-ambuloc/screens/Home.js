@@ -1,54 +1,76 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Image } from 'react-native';
-import MapView, { Marker, Polyline } from 'react-native-maps';
+import { StyleSheet, Text, View, TouchableOpacity, Image, Alert, ActivityIndicator } from 'react-native';
+import MapView, { Marker } from 'react-native-maps';
 import MapViewDirections from 'react-native-maps-directions';
-import { createStackNavigator } from '@react-navigation/stack';
 import { FontAwesome } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import * as Location from 'expo-location';
 
 const GOOGLE_MAPS_API_KEY = 'AIzaSyDav6TPfUpab9rj9QrIaLnEHYs04_KLi6o';
 
-const Stack = createStackNavigator();
+const HelpButton = () => {
+  const handleHelpButton = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        console.log('Permission to access location was denied');
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = location.coords;
+
+      console.log('Current Location:', latitude, longitude);
+
+      // Agregar aquí la lógica para la ayuda
+
+    } catch (error) {
+      console.log('Error getting current location:', error);
+    }
+  };
+
+  return (
+    <TouchableOpacity style={styles.helpButton} onPress={handleHelpButton}>
+      <Text style={styles.buttonText}>Ayuda</Text>
+    </TouchableOpacity>
+  );
+};
 
 export default function FirstScreen({ navigation }) {
   const [origin, setOrigin] = useState({
-    latitude: 4.7014,
-    longitude: -74.03244,
+    latitude: 4.710813844200389,
+    longitude: -74.06970772061347,
   });
-
-  const [destination, setDestination] = useState({
-    latitude: 4.700923565472723,
-    longitude: -74.03156339834439,
-  });
-
+  const [destination, setDestination] = useState(null);
   const [route, setRoute] = useState(null);
-  const [duration, setDuration] = useState(0);
-  const [isMoving, setIsMoving] = useState(false);
+  const [loadingMessageVisible, setLoadingMessageVisible] = useState(false);
+  const [cancelRequestVisible, setCancelRequestVisible] = useState(false);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (isMoving) {
-        setDestination((prevDestination) => ({
-          latitude: prevDestination.latitude - 0.0001,
-          longitude: prevDestination.longitude - 0.0001,
-        }));
+    getCurrentLocation();
+  }, []);
+
+  const getCurrentLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        console.log('Permission to access location was denied');
+        return;
       }
-    }, 1000);
 
-    return () => clearInterval(interval);
-  }, [isMoving]);
+      const location = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = location.coords;
 
-  useEffect(() => {
-    const updatedRegion = {
-      latitude: origin.latitude,
-      longitude: origin.longitude,
-      latitudeDelta: 0.003,
-      longitudeDelta: 0.001,
-    };
+      setOrigin({
+        latitude,
+        longitude,
+      });
 
-    mapRef.current.animateToRegion(updatedRegion);
-  }, [origin]);
+      console.log('Current Location:', latitude, longitude);
+    } catch (error) {
+      console.log('Error getting current location:', error);
+    }
+  };
 
   const mapRef = useRef(null);
 
@@ -62,34 +84,21 @@ export default function FirstScreen({ navigation }) {
     mapRef.current.animateToRegion(updatedRegion);
   };
 
-  const handleStartMoving = () => {
-    setIsMoving(true);
-  };
-
-  const handleStopMoving = () => {
-    setIsMoving(false);
-  };
-
-  const handleHelpButton = async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        console.log('Permission to access location was denied');
-        return;
-      }
-
-      const location = await Location.getCurrentPositionAsync({});
-      const { latitude, longitude } = location.coords;
-
+  const handleHelpButtonPress = () => {
+    setCancelRequestVisible(true);
+    setLoadingMessageVisible(true);
+    setTimeout(() => {
+      setLoadingMessageVisible(false);
       setDestination({
-        latitude,
-        longitude,
+        latitude: 4.705,
+        longitude: -74.035,
       });
+    }, 3000);
+  };
 
-      console.log('Current Location:', latitude, longitude);
-    } catch (error) {
-      console.log('Error getting current location:', error);
-    }
+  const handleCancelRequest = () => {
+    setCancelRequestVisible(false);
+    setDestination(null);
   };
 
   return (
@@ -107,54 +116,60 @@ export default function FirstScreen({ navigation }) {
           longitudeDelta: 0.04,
         }}
       >
-        <Marker
-          draggable
-          coordinate={origin}
-          onDragEnd={(e) => setOrigin(e.nativeEvent.coordinate)}
-        >
-        </Marker>
+        {origin && (
+          <Marker
+            draggable
+            coordinate={origin}
+            onDragEnd={(e) => setOrigin(e.nativeEvent.coordinate)}
+          />
+        )}
 
-        <Marker
-          draggable
-          coordinate={destination}
-          onDragEnd={(e) => setDestination(e.nativeEvent.coordinate)}
-        >
-        </Marker>
+        {destination && (
+          <>
+            <Marker
+              draggable
+              coordinate={destination}
+              onDragEnd={(e) => setDestination(e.nativeEvent.coordinate)}
+            />
 
-        <Polyline coordinates={route || [origin, destination]} />
-
-        <MapViewDirections
-          origin={origin}
-          destination={destination}
-          apikey={GOOGLE_MAPS_API_KEY}
-          strokeWidth={6}
-          onReady={(result) => {
-            setRoute(result.coordinates);
-            setDuration(result.duration);
-          }}
-          strokeColor="black"
-        />
+            <MapViewDirections
+              origin={origin}
+              destination={destination}
+              apikey={GOOGLE_MAPS_API_KEY}
+              strokeWidth={6}
+              onReady={(result) => {
+                setRoute(result.coordinates);
+              }}
+              strokeColor="black"
+            />
+          </>
+        )}
       </MapView>
 
       <TouchableOpacity style={styles.centerButton} onPress={handleCenterMap}>
         <FontAwesome name="crosshairs" size={24} color="white" />
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.emergencyButton} onPress={handleHelpButton}>
-        <Text style={styles.buttonText}>AYUDA</Text>
+      <HelpButton />
+
+      <TouchableOpacity style={styles.emergencyButton} onPress={handleHelpButtonPress}>
+        <Text style={styles.buttonText}>!</Text>
       </TouchableOpacity>
 
-      <View style={styles.buttonContainer}>
-        {isMoving ? (
-          <TouchableOpacity style={styles.stopButton} onPress={handleStopMoving}>
-            <Text style={styles.buttonText}>Detener Movimiento</Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity style={styles.startButton} onPress={handleStartMoving}>
-            <Text style={styles.buttonText}>Iniciar Movimiento</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+      {cancelRequestVisible && (
+        <TouchableOpacity style={styles.cancelButton} onPress={handleCancelRequest}>
+          <Text style={styles.buttonText}>Cancelar solicitud</Text>
+        </TouchableOpacity>
+      )}
+
+      {loadingMessageVisible && (
+        <View style={styles.loadingMessageContainer}>
+          <View style={styles.loadingMessageContent}>
+            <Text style={styles.loadingMessageText}>Buscando la ayuda más cercana</Text>
+            <ActivityIndicator size="large" color="black" />
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -172,7 +187,7 @@ const styles = StyleSheet.create({
   },
   emergencyButton: {
     position: 'absolute',
-    top: 550,
+    top: 20,
     right: 20,
     width: 80,
     height: 80,
@@ -181,10 +196,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  cancelButton: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    width: 150,
+    height: 80,
+    borderRadius: 100,
+    backgroundColor: 'black',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   buttonText: {
     color: 'white',
     fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: 24,
   },
   markerIcon: {
     width: 40,
@@ -201,28 +227,35 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  buttonContainer: {
+  loadingMessageContainer: {
+    position: 'absolute',
+    width: 300,
+    height: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingMessageContent: {
+    flexDirection: 'column',
+    alignItems: 'center',
+  },
+  loadingMessageText: {
+    color: 'black',
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginLeft: 10,
+  },
+  helpButton: {
     position: 'absolute',
     bottom: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  startButton: {
-    backgroundColor: 'green',
-    width: 200,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  stopButton: {
+    right: 20,
     backgroundColor: 'red',
-    width: 200,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
+    padding: 10,
+    borderRadius: 5,
     alignItems: 'center',
-    marginBottom: 10,
+  },
+  buttonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });

@@ -8,6 +8,7 @@ import { initializeApp } from 'firebase/app';
 import Historial from './screens/Historial';
 import FisrtScreen from './screens/Home';
 import Settings from './screens/Settings';
+import PrincipalPageScreen from './screens/PrincipalPageScreen';
 
 // Your web app's Firebase configuration
 export const firebaseConfig = {
@@ -34,6 +35,7 @@ const App = () => {
         <Stack.Screen name="Historial" component={Historial} />
         <Stack.Screen name="Home" component={FisrtScreen} />
         <Stack.Screen name="Settings" component={Settings} />
+        <Stack.Screen name="PrincipalPage" component={PrincipalPageScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

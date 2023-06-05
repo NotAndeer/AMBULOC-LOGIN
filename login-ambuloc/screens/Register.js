@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, TextInput, Button, Text, TouchableOpacity, StyleSheet, Keyboard, Alert, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
@@ -10,6 +10,7 @@ const RegisterScreen = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [eps, setEps] = useState('');
   const [soat, setSoat] = useState('');
+  const [soatCompany, setSoatCompany] = useState('');
   const [day, setDay] = useState('');
   const [month, setMonth] = useState('');
   const [year, setYear] = useState('');
@@ -20,6 +21,11 @@ const RegisterScreen = () => {
   const auth = getAuth();
 
   const handleRegister = () => {
+    if (!firstName || !lastName || !email || !password || !confirmPassword || !eps || !soat || !day || !month || !year) {
+      Alert.alert('Error', 'Por favor, completa todos los campos');
+      return;
+    }
+
     if (password !== confirmPassword) {
       Alert.alert('Error', 'Las contraseñas no coinciden');
       return;
@@ -27,32 +33,22 @@ const RegisterScreen = () => {
 
     signInWithEmailAndPassword(auth, email, password)
       .then(() => {
-        // El correo ya está en uso
         Alert.alert('Error', 'El correo ya se está usando');
       })
       .catch((signInError) => {
-        // Si el error es de tipo 'auth/user-not-found',
-        // significa que el correo no está en uso y se puede crear el usuario
         if (signInError.code === 'auth/user-not-found') {
           createUserWithEmailAndPassword(auth, email, password)
             .then((userCredential) => {
-              // Registro exitoso
               const user = userCredential.user;
               console.log(user);
 
-              // Lógica adicional para guardar los datos adicionales en Firebase
-              // ...
-
-              // Navegar a la pantalla de inicio de sesión
               navigation.navigate('Login');
             })
             .catch((createUserError) => {
-              // Error durante el registro
               console.log(createUserError);
               Alert.alert('Error', createUserError.message);
             });
         } else {
-          // Otro tipo de error durante el inicio de sesión
           console.log(signInError);
           Alert.alert('Error', signInError.message);
         }
@@ -89,6 +85,9 @@ const RegisterScreen = () => {
       setYear(formattedText);
     }
   };
+
+  const customEpsRef = useRef(null);
+  const customSoatCompanyRef = useRef(null);
 
   let monthInput;
   let yearInput;
@@ -150,21 +149,85 @@ const RegisterScreen = () => {
           </View>
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>EPS</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="EPS"
-              onChangeText={(text) => setEps(text)}
-              value={eps}
-            />
+            <Picker
+              selectedValue={eps}
+              style={styles.picker}
+              onValueChange={(itemValue, itemIndex) => {
+                setEps(itemValue);
+                if (itemValue === 'NO ESTÁ MI EPS') {
+                  if (customEpsRef.current) {
+                    customEpsRef.current.focus();
+                  }
+                }
+              }}
+            >
+              <Picker.Item label="COMPENSAR E.P.S." value="COMPENSAR E.P.S." />
+              <Picker.Item label="E.P.S. FAMISANAR LTDA." value="E.P.S. FAMISANAR LTDA." />
+              <Picker.Item label="E.P.S. SANITAS S.A." value="E.P.S. SANITAS S.A." />
+              <Picker.Item label="EPS SERVICIO OCCIDENTAL DE SALUD S.A." value="EPS SERVICIO OCCIDENTAL DE SALUD S.A." />
+              <Picker.Item
+                label="EPS Y MEDICINA PREPAGADA SURAMERICANA S.A."
+                value="EPS Y MEDICINA PREPAGADA SURAMERICANA S.A."
+              />
+              <Picker.Item label="NUEVA EPS S.A." value="NUEVA EPS S.A." />
+              <Picker.Item label="SALUD TOTAL S.A. E.P.S." value="SALUD TOTAL S.A. E.P.S." />
+              <Picker.Item label="SALUDVIDA S.A. E.P.S." value="SALUDVIDA S.A. E.P.S." />
+              <Picker.Item label="NO ESTÁ MI EPS" value="NO ESTÁ MI EPS" />
+            </Picker>
+            {eps === 'NO ESTÁ MI EPS' && (
+              <TextInput
+                style={styles.input}
+                placeholder="¿CUÁL ES TU EPS?"
+                onChangeText={(text) => setSoatCompany(text)}
+                value={soatCompany}
+                ref={customEpsRef}
+              />
+            )}
           </View>
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>SOAT</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="SOAT"
-              onChangeText={(text) => setSoat(text)}
-              value={soat}
-            />
+            <Picker
+              selectedValue={soat}
+              style={styles.picker}
+              onValueChange={(itemValue, itemIndex) => setSoat(itemValue)}
+            >
+              <Picker.Item label="Sí" value="Sí" />
+              <Picker.Item label="No" value="No" />
+            </Picker>
+            {soat === 'Sí' && (
+              <Picker
+                selectedValue={soatCompany}
+                style={styles.picker}
+                onValueChange={(itemValue, itemIndex) => setSoatCompany(itemValue)}
+              >
+                <Picker.Item label="Seguros Mundial" value="Seguros Mundial" />
+                <Picker.Item label="Sura" value="Sura" />
+                <Picker.Item label="Allianz" value="Allianz" />
+                <Picker.Item label="Seguros del Estado" value="Seguros del Estado" />
+                <Picker.Item
+                  label="Aseguradora Solidaria de Colombia"
+                  value="Aseguradora Solidaria de Colombia"
+                />
+                <Picker.Item label="Liberty Seguros" value="Liberty Seguros" />
+                <Picker.Item label="Seguros Bolívar" value="Seguros Bolívar" />
+                <Picker.Item label="MAPFRE" value="MAPFRE" />
+                <Picker.Item label="QBE Seguros" value="QBE Seguros" />
+                <Picker.Item label="Axa Colpatria" value="Axa Colpatria" />
+                <Picker.Item label="No está mi SOAT" value="No está mi SOAT" />
+              </Picker>
+            )}
+            {soatCompany === 'No está mi SOAT' && (
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>¿Cuál es tu compañía de SOAT?</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Escribe el nombre de tu compañía de SOAT"
+                  onChangeText={(text) => setSoatCompany(text)}
+                  value={soatCompany}
+                  ref={customSoatCompanyRef}
+                />
+              </View>
+            )}
           </View>
           <View style={styles.row}>
             <View style={styles.dateInputContainer}>
@@ -198,11 +261,10 @@ const RegisterScreen = () => {
               />
             </View>
           </View>
-
         </ScrollView>
         <TouchableOpacity style={styles.signInButton} onPress={handleRegister}>
-            <Text style={styles.signInButtonText}>Registrarse</Text>
-          </TouchableOpacity>
+          <Text style={styles.signInButtonText}>Registrarse</Text>
+        </TouchableOpacity>
       </View>
     </TouchableOpacity>
   );
@@ -289,11 +351,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: 'white',
-  },
-  noAccountText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#7C3AED',
   },
 });
 

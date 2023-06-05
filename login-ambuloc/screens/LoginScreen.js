@@ -27,8 +27,8 @@ const LoginScreen = () => {
         // Guardar los datos en la base de datos
         saveUserData(user.uid);
 
-        // Navegar a la pantalla "Maps"
-        navigation.navigate('Home');
+        // Navegar a la pantalla "PrincipalPage"
+        navigation.navigate('PrincipalPage');
       })
       .catch((error) => {
         // Error durante el inicio de sesión
@@ -217,4 +217,3 @@ const styles = StyleSheet.create({
 });
 
 export default LoginScreen;
- 
